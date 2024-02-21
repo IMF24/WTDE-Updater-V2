@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WTDE-Updater-V2")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("2.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a5bc9d3290b8e7c3dc1a2f618b3874a4b7729fa8")]
 [assembly: System.Reflection.AssemblyProductAttribute("WTDE-Updater-V2")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WTDE-Updater-V2")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

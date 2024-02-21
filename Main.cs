@@ -23,11 +23,38 @@ using MadMilkman.Ini;
 
 namespace WTDE_Updater_V2 {
     public partial class Main : Form {
+        /// <summary>
+        ///  Version of the program.
+        /// </summary>
+        public const string VERSION = "2.0";
+
+        /// <summary>
+        ///  Original working directory.
+        /// </summary>
         public string OWD = Directory.GetCurrentDirectory();
 
+        /// <summary>
+        ///  The form's constructor.
+        /// </summary>
         public Main() {
             InitializeComponent();
             AttemptGHWTInstallPath();
+
+            Directory.SetCurrentDirectory(GetGameDirectory());
+
+            if (!File.Exists("GHWT.exe") || !File.Exists("AWL.dll") || !File.Exists("d3d9.dll") || !Directory.Exists("DATA")) {
+                if (MessageBox.Show("This is not a GHWT installation folder!\n\nDo you want to point the program to a different folder?",
+                    "Not a Valid GHWT Folder",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes) {
+                    AttemptGHWTInstallPath();
+                } else {
+                    Application.Exit();
+                    Environment.Exit(0);
+                }
+            }
+
+            Directory.SetCurrentDirectory(OWD);
+
             this.Text = $"GHWT: Definitive Edition Updater - V{VERSION}";
             VersionInfoLabel.Text = $"GHWT: DE Updater V{VERSION} by IMF24\nBG Image: Fox (FoxInari)";
 
@@ -36,17 +63,24 @@ namespace WTDE_Updater_V2 {
             HeadLabel.Text = "Press the \"Start Update\" button below,\nand watch the magic happen!\n\nThen just sit back; we'll handle the rest.";
             CurrentFileLabel.Text = "Current File Progress";
 
-
+            string updateStartingAlert = "The updater will now verify your installation's integrity and download " +
+                                         "any missing files.\n\n" +
+                                         "Be patient! This will take a while.\n\n" +
+                                         "Tip: If your updater has been running for longer than 5 minutes and has been frozen " +
+                                         "on one file for a long time, it's best advised to close the updater and start " +
+                                         "it up again. It will pick right back up where it left off.";
+            MessageBox.Show(updateStartingAlert, "Update Starting", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        public const string VERSION = "2.0";
-
+        /// <summary>
+        ///  Attempts to automatically execute the download when the program first launches.
+        /// </summary>
         public void UpdateAutoExecute() {
             try {
                 IniFile file = new IniFile();
                 file.Load("Updater.ini");
 
-                if (file.Sections["Updater"].Keys["AutoUpdate"].Value == "1") {
+                if (file.Sections["Updater"].Keys.Contains("AutoUpdate") && file.Sections["Updater"].Keys["AutoUpdate"].Value == "1") {
                     ExecuteDownload(file.Sections["Updater"].Keys["GameDirectory"].Value);
                     this.Show();
                 }
@@ -55,6 +89,27 @@ namespace WTDE_Updater_V2 {
             }
         }
 
+        /// <summary>
+        ///  Returns the path where GHWT is installed to.
+        /// </summary>
+        /// <returns></returns>
+        public string GetGameDirectory() {
+            try {
+                IniFile file = new IniFile();
+                file.Load("Updater.ini");
+
+                if (file.Sections["Updater"].Keys.Contains("GameDirectory") && file.Sections["Updater"].Keys["GameDirectory"].Value != null) {
+                    return file.Sections["Updater"].Keys["GameDirectory"].Value;
+                } else return ".";
+            } catch {
+                return ".";
+            }
+        }
+
+        /// <summary>
+        ///  Reads the MD5 hash list from the WTDE volatile repository as an array of strings.
+        /// </summary>
+        /// <returns></returns>
         public string[] GetHashListData() {
             using (WebClient client = new WebClient()) {
                 string downloadString = client.DownloadString("https://gitgud.io/fretworks/ghwt-de-volatile/-/raw/master/GHWTDE/hashlist.dat");
@@ -62,6 +117,11 @@ namespace WTDE_Updater_V2 {
             }
         }
 
+        /// <summary>
+        ///  Reads the MD5 hash of the specified file.
+        /// </summary>
+        /// <param name="fileToCheck"></param>
+        /// <returns></returns>
         public string GetUserHash(string fileToCheck) {
             if (!File.Exists(fileToCheck)) return "00000000000000000000000000000000";
             using (var md5 = MD5.Create()) {
@@ -72,33 +132,46 @@ namespace WTDE_Updater_V2 {
             }
         }
 
+        /// <summary>
+        ///  Main script for downloading files.
+        /// </summary>
+        /// <param name="workDir"></param>
         public async void ExecuteDownload(string workDir) {
+            // Update button accessiblity.
             BeginUpdate.Enabled = false;
             EndUpdateButton.Enabled = true;
 
+            // Make tip messages!
             BackgroundWorkerMain.RunWorkerAsync();
 
             // For our convenience, let's set our working directory to the user provided one.
             Directory.SetCurrentDirectory(workDir);
 
-            // First two lines, we can skip. Also update the header label.
+            // Get the hash list as a string array and update the header label.
             string[] hashListData = GetHashListData();
             string version = hashListData[1];
             HeadLabel.Text = "Sit tight, we're updating your mod!\n" +
                              $"Updating to Version {version}...\n\n" +
                              "Be patient, make yourself a cup of tea...";
 
+            // This mess of logic is SUPPOSED to make it "easier" to handle
+            // downloading various files... Why do we need so many lists?
             var filePaths = new List<string>();
             var fileHashes = new List<string>();
-            // var fileOuts = new List<string>();
             var fileOutPaths = new List<string>();
             var fileDirs = new List<string>();
+
+            // -- FILE PATHS ON THE REPOSITORY
             for (var i = 2; i < hashListData.Length; i += 2) {
                 filePaths.Add("https://gitgud.io/fretworks/ghwt-de-volatile/-/raw/master/GHWTDE/" + hashListData[i]);
             }
+
+            // -- FILE MD5 HASHES
             for (var i = 3; i < hashListData.Length; i += 2) {
                 fileHashes.Add(hashListData[i]);
             }
+
+            // -- FILE OUTPUT PATHS ON THE DISK
             for (var i = 0; i < filePaths.Count; i++) {
                 using (WebClient wc = new WebClient()) {
                     string newOutDir = filePaths[i].Split("Content/").Last();
@@ -106,18 +179,9 @@ namespace WTDE_Updater_V2 {
                     fileOutPaths.Add(newOutDir);
                 }
             }
-            TotalProgress.Maximum = filePaths.Count;
-            /*
-            for (var i = 0; i < filePaths.Count; i++) {
-                foreach (var path in fileOutPaths) {
-                    string currentPath = filePaths[i].Split("/").First();
-                    string fileName = filePaths[i].Split("/").Last();
 
-                    string newPath = currentPath + path + fileName;
-                    fileDirs.Add(newPath);
-                }
-            }
-            */
+            // Max value of the progress bar will be number of files.
+            TotalProgress.Maximum = filePaths.Count;
 
             Console.WriteLine($"Is there even data in hashListData? {hashListData.Length}");
 
@@ -129,25 +193,32 @@ namespace WTDE_Updater_V2 {
             // $"fileDirs = {fileDirs.Count}");
             // if (filePaths.Length == fileHashes.Length) Console.WriteLine("Hey, both lists are equal in length!");
 
+            // Change the version number on the header label.
             HeadLabel.Text.Replace("Version x", $"Version {hashListData[1]}");
 
+            // Update idle tasks just in case.
             Application.DoEvents();
 
-            // Start at index 2, this is weird, but necessary.
+            // Number of files downloaded and the number of files TO download.
             int filesDone = 0;
             int totalFiles = filePaths.Count;
+
+            // Now comes the mess that is the download logic...
             for (var i = 0; i < fileOutPaths.Count; i++) {
+                // dl = URL of the file to download
                 var dl = filePaths[i];
+                // fl = Disk path to save the file to
                 var fl = fileOutPaths[i];
 
                 Console.WriteLine($"Downloading file {dl}, save to {fl}");
 
+                // Update labels, update idle tasks again.
                 CurrentFileLabel.Text = $"Checking File: {fl}";
                 TotalProgressLabel.Text = $"Total Progress - {filesDone + 1} of {filePaths.Count}";
-
-
                 Application.DoEvents();
 
+                // Mess of logic to add a directory to the GHWT install
+                // folder so that the updater can download to it.
                 string[] pathSplit = fl.Split("/");
                 string path = "";
                 for (var j = 0; j < pathSplit.Length - 1; j++) path += pathSplit[j] + "/";
@@ -155,28 +226,37 @@ namespace WTDE_Updater_V2 {
                 Console.WriteLine($"does dir ({path}) exist? {Directory.Exists(path)}");
                 if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
+                // Are the MD5 hashes mismatched?
+                // If so, let's re-download the file!
                 if (fileHashes[i].ToUpper() != GetUserHash(fl).ToUpper()) {
+                    // This type of HttpClient extension lets us report download progress.
                     using (var client = new HttpClientDownloadWithProgress(dl, fl)) {
                         client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) => {
-                            CurrentFileProgress.Maximum = (int)totalFileSize;
+                            CurrentFileProgress.Maximum = (int) totalFileSize;
                             CurrentFileProgressPercent.Text = $"{progressPercentage}%";
-                            CurrentFileProgress.Value = (int)totalBytesDownloaded;
+                            CurrentFileProgress.Value = (int) totalBytesDownloaded;
                         };
+                        // Update label, start download.
                         CurrentFileLabel.Text = $"Downloading File: {fl}";
-                        await client.StartDownload();
+                        await client.StartDownload();           // This line seems to be problematic... It gets stuck here, it seems.
                     }
                 }
 
+                // File was OK or the file was downloaded!
+                // Add 1 to the count of files done and update the progress bar(s).
                 filesDone++;
                 TotalProgress.Value = filesDone;
-
-                double totalProgressSoFar = ((double)TotalProgress.Value / (double)TotalProgress.Maximum) * 100;
+                double totalProgressSoFar = ((double) TotalProgress.Value / (double) TotalProgress.Maximum) * 100;
                 Console.WriteLine($"current progress: {totalProgressSoFar}%");
                 TotalProgressPercent.Text = $"{totalProgressSoFar.ToString("0.00")}%";
                 this.Text = $"GHWT: Definitive Edition Updater - V{VERSION} - Updated {filesDone} of {filePaths.Count} Files ({totalProgressSoFar.ToString("0.00")}%)";
 
+                // Update idle tasks, move on to the next file!
                 Application.DoEvents();
             }
+
+            // All files are downloaded!
+            // Do some final updating of all controls, and we're done here!
             if (filesDone >= filePaths.Count) {
                 CurrentFileLabel.Text = "Download Complete!";
                 EndUpdateButton.Text = "Awesome, Thanks!";
@@ -216,22 +296,21 @@ namespace WTDE_Updater_V2 {
                                 MessageBox.Show("This folder did not contain GHWT.exe!", "GHWT.exe Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                         }
-
-                        FolderBrowserDialog folderBrowser = new FolderBrowserDialog();
-                        while (!File.Exists($"{folderBrowser.SelectedPath}/GHWT.exe")) {
-                            if (folderBrowser.ShowDialog() == DialogResult.OK) {
-                                if (File.Exists($"{folderBrowser.SelectedPath}/GHWT.exe")) {
-                                    MessageBox.Show("GHWT.exe was detected!", "GHWT.exe Found", MessageBoxButtons.OK);
-                                    WriteUpdaterINI(folderBrowser.SelectedPath);
-                                    return;
-                                } else {
-                                    MessageBox.Show("This folder did not contain GHWT.exe!\nNavigate to a folder that contains the GHWT.exe executable.",
-                                                    "GHWT.exe Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                }
+                    }
+                    FolderBrowserDialog folderBrowser = new FolderBrowserDialog();
+                    while (!File.Exists($"{folderBrowser.SelectedPath}/GHWT.exe")) {
+                        if (folderBrowser.ShowDialog() == DialogResult.OK) {
+                            if (File.Exists($"{folderBrowser.SelectedPath}/GHWT.exe")) {
+                                MessageBox.Show("GHWT.exe was detected!", "GHWT.exe Found", MessageBoxButtons.OK);
+                                WriteUpdaterINI(folderBrowser.SelectedPath);
+                                return;
                             } else {
-                                Close();
-                                Environment.Exit(0);
+                                MessageBox.Show("This folder did not contain GHWT.exe!\nNavigate to a folder that contains the GHWT.exe executable.",
+                                                "GHWT.exe Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
+                        } else {
+                            Close();
+                            Environment.Exit(0);
                         }
                     }
                 }
@@ -247,25 +326,6 @@ namespace WTDE_Updater_V2 {
                     Environment.Exit(0);
                 } else e.Cancel = true;
             }
-        }
-
-        public static double ApproachValue(double value, double end, double amount) {
-            // Moving in the positive direction.
-            if (value < end) {
-
-                value += amount;
-
-                if (value > end) return end;
-
-                // Moving in the negative direction.
-            } else {
-                value -= amount;
-
-                if (value < end) return end;
-            }
-
-            // Return the resulting value.
-            return value;
         }
 
         private void BeginUpdate_Click(object sender, EventArgs e) {

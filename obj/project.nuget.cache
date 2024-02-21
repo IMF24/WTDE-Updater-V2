@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "LoPStmBFmlQiee0b1xf3K/eFSEKXNyJCP0BMZAlzUrVzgHEMizqgI7IXJjfQANWora+I41m4X9eR5yt3g/1zNQ==",
+  "dgSpecHash": "0mJ8xjoHLBieYnCPjKrM4P3oljUo9/cnX0x5/344n+2g9MDyhsk2Ig1UQUwze/D0/NaYOyKGCxAHYERMwfLsAA==",
   "success": true,
-  "projectFilePath": "C:\\Users\\ifire\\Desktop\\WTDE-Updater-V2\\WTDE-Updater-V2.csproj",
+  "projectFilePath": "D:\\WTDE-Updater-V2\\WTDE-Updater-V2.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\ifire\\.nuget\\packages\\costura.fody\\5.7.0\\costura.fody.5.7.0.nupkg.sha512",
     "C:\\Users\\ifire\\.nuget\\packages\\fody\\6.5.5\\fody.6.5.5.nupkg.sha512",
