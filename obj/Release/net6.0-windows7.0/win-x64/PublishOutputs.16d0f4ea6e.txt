@@ -1,7 +1,0 @@
-C:\Users\ifire\Desktop\WTDE Updater V2 Test Builds\WTDE-Updater-V2.pdb
-C:\Users\ifire\Desktop\WTDE Updater V2 Test Builds\D3DCompiler_47_cor3.dll
-C:\Users\ifire\Desktop\WTDE Updater V2 Test Builds\PenImc_cor3.dll
-C:\Users\ifire\Desktop\WTDE Updater V2 Test Builds\PresentationNative_cor3.dll
-C:\Users\ifire\Desktop\WTDE Updater V2 Test Builds\vcruntime140_cor3.dll
-C:\Users\ifire\Desktop\WTDE Updater V2 Test Builds\wpfgfx_cor3.dll
-C:\Users\ifire\Desktop\WTDE Updater V2 Test Builds\WTDE-Updater-V2.exe

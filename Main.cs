@@ -1,4 +1,4 @@
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+﻿/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
              _________ ______   _______                  _______  ______   _______ _________ _______  _______                _______ 
     |\     /|\__   __/(  __  \ (  ____ \       |\     /|(  ____ )(  __  \ (  ___  )\__   __/(  ____ \(  ____ )     |\     /|/ ___   )
     | )   ( |   ) (   | (  \  )| (    \/       | )   ( || (    )|| (  \  )| (   ) |   ) (   | (    \/| (    )|     | )   ( |\/   )  |
@@ -14,19 +14,25 @@
     
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+using System;
+using System.IO;
 using System.Net;
 using System.Security.Cryptography;
-using System.Security.Policy;
 using System.Diagnostics;
+using System.Drawing;
 using Microsoft.Win32;
 using MadMilkman.Ini;
+using System.Collections.Generic;
+using System.Threading;
+using System.Windows.Forms;
+using System.Linq;
 
 namespace WTDE_Updater_V2 {
     public partial class Main : Form {
         /// <summary>
         ///  Version of the program.
         /// </summary>
-        public const string VERSION = "2.0";
+        public const string VERSION = "2.1";
 
         /// <summary>
         ///  Original working directory.
@@ -34,9 +40,21 @@ namespace WTDE_Updater_V2 {
         public string OWD = Directory.GetCurrentDirectory();
 
         /// <summary>
+        ///  Is an update in progress?
+        /// </summary>
+        public bool UpdateInProgress = false;
+
+        /// <summary>
+        ///  Arguments passed through the command line!
+        /// </summary>
+        public string[] Args;
+
+        /// <summary>
         ///  The form's constructor.
         /// </summary>
-        public Main() {
+        public Main(string[] args) {
+            this.Args = args;
+
             InitializeComponent();
             AttemptGHWTInstallPath();
 
@@ -57,6 +75,7 @@ namespace WTDE_Updater_V2 {
 
             this.Text = $"GHWT: Definitive Edition Updater - V{VERSION}";
             VersionInfoLabel.Text = $"GHWT: DE Updater V{VERSION} by IMF24\nBG Image: Fox (FoxInari)";
+            VersionInfoLabelHome.Text = VersionInfoLabel.Text;
 
             TipLabel.Text = "";
 
@@ -70,22 +89,39 @@ namespace WTDE_Updater_V2 {
                                          "on one file for a long time, it's best advised to close the updater and start " +
                                          "it up again. It will pick right back up where it left off.";
             MessageBox.Show(updateStartingAlert, "Update Starting", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            // Set panel locations.
+            IntroPanel.Location = new Point(0, 0);
+            MainUpdaterPanel.Location = new Point(0, 0);
+
+            // - - - - - - - - - - - - - - - - - - - - - - -
+
+            // Process command line arguments!
+            if (Args.Contains("-C") || Args.Contains("--choose-install")) {
+                IntroPanel.Enabled = true;
+                IntroPanel.Visible = true;
+
+                MainUpdaterPanel.Enabled = false;
+                MainUpdaterPanel.Visible = false;
+            } else {
+                ExecuteDownload(GetGameDirectory());
+            }
         }
 
         /// <summary>
         ///  Attempts to automatically execute the download when the program first launches.
         /// </summary>
         public void UpdateAutoExecute() {
-            try {
-                IniFile file = new IniFile();
-                file.Load("Updater.ini");
+            if (!(Args.Contains("-C") || Args.Contains("--choose-install"))) {
+                try {
+                    IniFile file = new IniFile();
+                    file.Load("Updater.ini");
 
-                if (file.Sections["Updater"].Keys.Contains("AutoUpdate") && file.Sections["Updater"].Keys["AutoUpdate"].Value == "1") {
-                    ExecuteDownload(file.Sections["Updater"].Keys["GameDirectory"].Value);
+                    ExecuteDownload(GetGameDirectory());
                     this.Show();
+                } catch {
+                    return;
                 }
-            } catch {
-                return;
             }
         }
 
@@ -100,6 +136,23 @@ namespace WTDE_Updater_V2 {
 
                 if (file.Sections["Updater"].Keys.Contains("GameDirectory") && file.Sections["Updater"].Keys["GameDirectory"].Value != null) {
                     return file.Sections["Updater"].Keys["GameDirectory"].Value;
+                } else return ".";
+            } catch {
+                return ".";
+            }
+        }
+
+        /// <summary>
+        ///  Returns the path where the WTDE local build is defined in.
+        /// </summary>
+        /// <returns></returns>
+        public string GetLocalBuildDirectory() {
+            try {
+                IniFile file = new IniFile();
+                file.Load("Updater.ini");
+
+                if (file.Sections["Updater"].Keys.Contains("LocalBuildDirectory") && file.Sections["Updater"].Keys["LocalBuildDirectory"].Value != null) {
+                    return file.Sections["Updater"].Keys["LocalBuildDirectory"].Value;
                 } else return ".";
             } catch {
                 return ".";
@@ -138,8 +191,13 @@ namespace WTDE_Updater_V2 {
         /// <param name="workDir"></param>
         public async void ExecuteDownload(string workDir) {
             // Update button accessiblity.
-            BeginUpdate.Enabled = false;
-            EndUpdateButton.Enabled = true;
+            UpdateInProgress = true;
+
+            IntroPanel.Visible = !(UpdateInProgress);
+            IntroPanel.Enabled = !(UpdateInProgress);
+
+            MainUpdaterPanel.Visible = UpdateInProgress;
+            MainUpdaterPanel.Enabled = UpdateInProgress;
 
             // Make tip messages!
             BackgroundWorkerMain.RunWorkerAsync();
@@ -174,7 +232,12 @@ namespace WTDE_Updater_V2 {
             // -- FILE OUTPUT PATHS ON THE DISK
             for (var i = 0; i < filePaths.Count; i++) {
                 using (WebClient wc = new WebClient()) {
-                    string newOutDir = filePaths[i].Split("Content/").Last();
+                    string[] newOutDirArray = filePaths[i].Split('/');
+                    string newOutDir = "";
+                    for (var j = 2; j < newOutDirArray.Length; j++) {
+                        newOutDir += $"{newOutDirArray[j]}/";
+                    }
+                    newOutDir = newOutDir.TrimEnd('/');
                     Console.WriteLine($"new out dir: {newOutDir}");
                     fileOutPaths.Add(newOutDir);
                 }
@@ -219,7 +282,7 @@ namespace WTDE_Updater_V2 {
 
                 // Mess of logic to add a directory to the GHWT install
                 // folder so that the updater can download to it.
-                string[] pathSplit = fl.Split("/");
+                string[] pathSplit = fl.Split('/');
                 string path = "";
                 for (var j = 0; j < pathSplit.Length - 1; j++) path += pathSplit[j] + "/";
                 if (path == "") path = ".";
@@ -232,9 +295,9 @@ namespace WTDE_Updater_V2 {
                     // This type of HttpClient extension lets us report download progress.
                     using (var client = new HttpClientDownloadWithProgress(dl, fl)) {
                         client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) => {
-                            CurrentFileProgress.Maximum = (int) totalFileSize;
+                            CurrentFileProgress.Maximum = (int)totalFileSize;
                             CurrentFileProgressPercent.Text = $"{progressPercentage}%";
-                            CurrentFileProgress.Value = (int) totalBytesDownloaded;
+                            CurrentFileProgress.Value = (int)totalBytesDownloaded;
                         };
                         // Update label, start download.
                         CurrentFileLabel.Text = $"Downloading File: {fl}";
@@ -246,9 +309,9 @@ namespace WTDE_Updater_V2 {
                 // Add 1 to the count of files done and update the progress bar(s).
                 filesDone++;
                 TotalProgress.Value = filesDone;
-                double totalProgressSoFar = ((double) TotalProgress.Value / (double) TotalProgress.Maximum) * 100;
+                double totalProgressSoFar = ((double)TotalProgress.Value / (double)TotalProgress.Maximum) * 100;
                 Console.WriteLine($"current progress: {totalProgressSoFar}%");
-                TotalProgressPercent.Text = $"{totalProgressSoFar.ToString("0.00")}%";
+                TotalProgressPercent.Text = $"{totalProgressSoFar:0.00}%";
                 this.Text = $"GHWT: Definitive Edition Updater - V{VERSION} - Updated {filesDone} of {filePaths.Count} Files ({totalProgressSoFar.ToString("0.00")}%)";
 
                 // Update idle tasks, move on to the next file!
@@ -259,6 +322,139 @@ namespace WTDE_Updater_V2 {
             // Do some final updating of all controls, and we're done here!
             if (filesDone >= filePaths.Count) {
                 CurrentFileLabel.Text = "Download Complete!";
+                EndUpdateButton.Text = "Awesome, Thanks!";
+                HeadLabel.Text = "Your copy of GHWT: DE is completely\nUP TO DATE!\nEnjoy the definitive experience!";
+
+                this.Text = $"GHWT: Definitive Edition Updater - V{VERSION} - Update Complete!";
+                return;
+            }
+        }
+
+        /// <summary>
+        ///  Main script for local update. Copies all package files from a build folder.
+        /// </summary>
+        /// <param name="workDir">
+        ///  Destination folder to copy files to.
+        /// </param>
+        /// <param name="localBuildDir">
+        ///  The folder that contains the local WTDE build to update with.
+        /// </param>
+        public void ExecuteLocalInstall(string workDir, string localBuildDir) {
+            if (!File.Exists(Path.Combine(localBuildDir, "hashlist.dat"))) {
+                MessageBox.Show("Can't locally install; the build directory does not contain hashlist.dat.", "Can't Local Install", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            Console.WriteLine("\nUPDATING GHWT: DEFINITIVE EDITION...\n");
+
+            UpdateInProgress = true;
+
+            IntroPanel.Enabled = false;
+            IntroPanel.Visible = false;
+
+            MainUpdaterPanel.Enabled = true;
+            MainUpdaterPanel.Visible = true;
+
+            // Make tip messages!
+            BackgroundWorkerMain.RunWorkerAsync();
+
+            string hashlistDir = Path.Combine(localBuildDir, "hashlist.dat");
+            string[] hashListData = File.ReadAllText(hashlistDir).Replace("\r", "").Split('\n');
+
+            string version = hashListData[1].Replace("\r", "");
+            HeadLabel.Text = "Sit tight, we're updating your mod!\n" +
+                             $"Updating to Version {version}...\n\n" +
+                             "Be patient, make yourself a cup of tea...";
+
+            // This mess of logic is SUPPOSED to make it "easier" to handle
+            // copying various files... Why do we need so many lists?
+            var filePaths = new List<string>();
+            var fileHashes = new List<string>();
+            var fileOutPaths = new List<string>();
+
+            Console.WriteLine("Updating locally, not online");
+
+            // -- FILE SOURCE BUILD PATHS
+            for (var i = 2; i < hashListData.Length; i += 2) {
+                filePaths.Add(Path.Combine(localBuildDir, hashListData[i].Replace("\r", "")));
+            }
+
+            // -- FILE MD5 HASHES
+            for (var i = 3; i < hashListData.Length; i += 2) {
+                fileHashes.Add(hashListData[i].Replace("\r", ""));
+            }
+
+            // -- FILE OUTPUT PATHS
+            for (var i = 0; i < filePaths.Count; i++) {
+                string[] newOutDirArray = filePaths[i].Split('/');
+                string newOutDir = "";
+                for (var j = 2; j < newOutDirArray.Length; j++) {
+                    newOutDir += $"{newOutDirArray[j]}/";
+                }
+                newOutDir = newOutDir.TrimEnd('/').Replace("\r", "");
+                Console.WriteLine($"new out dir: {newOutDir}");
+                fileOutPaths.Add(Path.Combine(workDir, newOutDir));
+            }
+
+            // Max value of the progress bar will be number of files.
+            TotalProgress.Maximum = filePaths.Count;
+
+            // Number of files copied and the number of files TO copy.
+            int filesDone = 0;
+            int totalFiles = filePaths.Count;
+
+            Console.WriteLine($"Total files to update: {totalFiles}\n\nSTARTING UPDATE NOW!\n");
+
+            // Now comes the mess that is the copy logic...
+            for (var i = 0; i < fileOutPaths.Count; i++) {
+                // dl = Path of the source file to copy
+                var dl = filePaths[i];
+                // fl = Disk path to save the file to
+                var fl = fileOutPaths[i];
+
+                Console.WriteLine($"Copying file {dl} to {fl}");
+
+                // Update labels, update idle tasks again.
+                CurrentFileLabel.Text = $"Checking File: {fl}";
+                TotalProgressLabel.Text = $"Total Progress - {filesDone + 1} of {filePaths.Count}";
+                Application.DoEvents();
+
+                // Mess of logic to add a directory to the GHWT install
+                // folder so that the updater can copy to it.
+                string[] pathSplit = fl.Split('/');
+                string path = "";
+                for (var j = 0; j < pathSplit.Length - 1; j++) path += pathSplit[j] + "/";
+                if (path == "") path = ".";
+                Console.WriteLine($"does dir ({path}) exist? {Directory.Exists(path)}");
+                if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+
+                // Are the MD5 hashes mismatched?
+                // If so, let's re-copy the file!
+                if (fileHashes[i].ToUpper() != GetUserHash(fl).ToUpper()) {
+                    Console.WriteLine("!! -- HASH MISMATCH, COPY THIS THING!");
+                    CurrentFileLabel.Text = $"Copying File: {fl}";
+                    File.Copy(dl, fl, true);
+                }
+
+                // File was OK or the file was copied!
+                // Add 1 to the count of files done and update the progress bar(s).
+                filesDone++;
+                TotalProgress.Value = filesDone;
+                double totalProgressSoFar = ((double)TotalProgress.Value / (double)TotalProgress.Maximum) * 100;
+                Console.WriteLine($"current progress: {totalProgressSoFar:0.00}%");
+                TotalProgressPercent.Text = $"{totalProgressSoFar:0.00}%";
+                this.Text = $"GHWT: Definitive Edition Updater - V{VERSION} - Updated {filesDone} of {filePaths.Count} Files ({totalProgressSoFar.ToString("0.00")}%)";
+
+                // Update idle tasks, move on to the next file!
+                Application.DoEvents();
+            }
+
+            // All files are copied!
+            // Do some final updating of all controls, and we're done here!
+            if (filesDone >= filePaths.Count) {
+                Console.WriteLine($"\nUPDATE COMPLETE! WHOO!!!\nMod is now updated to version {version}!\n");
+
+                CurrentFileLabel.Text = "Update Complete!";
                 EndUpdateButton.Text = "Awesome, Thanks!";
                 HeadLabel.Text = "Your copy of GHWT: DE is completely\nUP TO DATE!\nEnjoy the definitive experience!";
 
@@ -333,7 +529,7 @@ namespace WTDE_Updater_V2 {
         }
 
         private void BackgroundWorkerMain_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e) {
-            while (EndUpdateButton.Text == "Cancel Update" && !BeginUpdate.Enabled) {
+            while (UpdateInProgress && EndUpdateButton.Text == "Cancel Update") {
                 Random random = new Random();
                 int msgID = random.Next(0, TipMessages.Length);
 
@@ -355,10 +551,6 @@ namespace WTDE_Updater_V2 {
                 }
             }
             TipLabel.Text = "We're finished updating!";
-        }
-
-        private void CurrentFileProgressPercent_Click(object sender, EventArgs e) {
-
         }
 
         private void EndUpdateButton_Click(object sender, EventArgs e) {
@@ -387,7 +579,7 @@ namespace WTDE_Updater_V2 {
         }
 
         string[] TipMessages = {
-            "Guitar Hero: World Tour � 2009 Activision Publishing, Inc.",
+            "Guitar Hero: World Tour © 2009 Activision Publishing, Inc.",
             "GHWT: DE is a free, community based mod. It is not affiliated with any companies.",
             "GHWT: DE and Fretworks are not assoicated with Activision or any related entity.",
             "Pro Tip: Hit the notes to keep from failing the song.",
@@ -443,6 +635,14 @@ namespace WTDE_Updater_V2 {
                 psi.FileName = url;
                 System.Diagnostics.Process.Start(psi);
             }
+        }
+
+        private void OnlineUpdateButton_Click(object sender, EventArgs e) {
+            ExecuteDownload(GetUpdaterINIPath());
+        }
+
+        private void LocalUpdateButton_Click(object sender, EventArgs e) {
+            ExecuteLocalInstall(GetUpdaterINIPath(), GetLocalBuildDirectory());
         }
     }
 }
