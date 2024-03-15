@@ -4,8 +4,7 @@
     <ProjectView>ShowAllFiles</ProjectView>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
-    <StartArguments>
-    </StartArguments>
+    <StartArguments>--choose-install</StartArguments>
     <StartAction>Project</StartAction>
   </PropertyGroup>
 </Project>

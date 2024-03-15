@@ -232,7 +232,7 @@ namespace WTDE_Updater_V2 {
             // -- FILE OUTPUT PATHS ON THE DISK
             for (var i = 0; i < filePaths.Count; i++) {
                 using (WebClient wc = new WebClient()) {
-                    string[] newOutDirArray = filePaths[i].Split('/');
+                    string[] newOutDirArray = filePaths[i].Replace("https://gitgud.io/fretworks/ghwt-de-volatile/-/raw/master/GHWTDE/", "").Split('/');
                     string newOutDir = "";
                     for (var j = 2; j < newOutDirArray.Length; j++) {
                         newOutDir += $"{newOutDirArray[j]}/";
@@ -388,9 +388,16 @@ namespace WTDE_Updater_V2 {
             for (var i = 0; i < filePaths.Count; i++) {
                 string[] newOutDirArray = filePaths[i].Split('/');
                 string newOutDir = "";
-                for (var j = 2; j < newOutDirArray.Length; j++) {
-                    newOutDir += $"{newOutDirArray[j]}/";
+
+                bool contentFolderFound = false;
+                for (var j = 0; j < newOutDirArray.Length; j++) {
+                    if (contentFolderFound) {
+                        newOutDir += $"{newOutDirArray[j]}/";
+                    } else {
+                        if (newOutDirArray[j].Contains("Content")) contentFolderFound = true;
+                    }
                 }
+
                 newOutDir = newOutDir.TrimEnd('/').Replace("\r", "");
                 Console.WriteLine($"new out dir: {newOutDir}");
                 fileOutPaths.Add(Path.Combine(workDir, newOutDir));
