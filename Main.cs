@@ -193,6 +193,8 @@ namespace WTDE_Updater_V2 {
             // Update button accessiblity.
             UpdateInProgress = true;
 
+            Console.WriteLine("\nUPDATING GHWT: DEFINITIVE EDITION...\n");
+
             IntroPanel.Visible = !(UpdateInProgress);
             IntroPanel.Enabled = !(UpdateInProgress);
 
@@ -243,6 +245,8 @@ namespace WTDE_Updater_V2 {
                 }
             }
 
+            Console.WriteLine("Updating over the air, not locally");
+
             // Max value of the progress bar will be number of files.
             TotalProgress.Maximum = filePaths.Count;
 
@@ -265,6 +269,8 @@ namespace WTDE_Updater_V2 {
             // Number of files downloaded and the number of files TO download.
             int filesDone = 0;
             int totalFiles = filePaths.Count;
+
+            Console.WriteLine($"Total files to update: {totalFiles}\n\nSTARTING UPDATE NOW!\n");
 
             // Now comes the mess that is the download logic...
             for (var i = 0; i < fileOutPaths.Count; i++) {
@@ -291,7 +297,12 @@ namespace WTDE_Updater_V2 {
 
                 // Are the MD5 hashes mismatched?
                 // If so, let's re-download the file!
-                if (fileHashes[i].ToUpper() != GetUserHash(fl).ToUpper()) {
+                string userHash = GetUserHash(fl).ToUpper();
+                string repoHash = fileHashes[i].ToUpper();
+
+                Console.WriteLine($"-- HASHES FOR FILE {fl}:\nuser MD5 hash: {userHash}\nrepo MD5 hash: {repoHash}");
+
+                if (userHash != repoHash) {
                     // This type of HttpClient extension lets us report download progress.
                     using (var client = new HttpClientDownloadWithProgress(dl, fl)) {
                         client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) => {
@@ -303,6 +314,8 @@ namespace WTDE_Updater_V2 {
                         CurrentFileLabel.Text = $"Downloading File: {fl}";
                         await client.StartDownload();           // This line seems to be problematic... It gets stuck here, it seems.
                     }
+                } else {
+                    Console.WriteLine("!! -- HASHES MATCHED");
                 }
 
                 // File was OK or the file was downloaded!
@@ -321,6 +334,8 @@ namespace WTDE_Updater_V2 {
             // All files are downloaded!
             // Do some final updating of all controls, and we're done here!
             if (filesDone >= filePaths.Count) {
+                Console.WriteLine($"\nUPDATE COMPLETE! WHOO!!!\nMod is now updated to version {version}!\n");
+
                 CurrentFileLabel.Text = "Download Complete!";
                 EndUpdateButton.Text = "Awesome, Thanks!";
                 HeadLabel.Text = "Your copy of GHWT: DE is completely\nUP TO DATE!\nEnjoy the definitive experience!";
@@ -437,10 +452,17 @@ namespace WTDE_Updater_V2 {
 
                 // Are the MD5 hashes mismatched?
                 // If so, let's re-copy the file!
-                if (fileHashes[i].ToUpper() != GetUserHash(fl).ToUpper()) {
+                string userHash = GetUserHash(fl).ToUpper();
+                string repoHash = fileHashes[i].ToUpper();
+
+                Console.WriteLine($"-- HASHES FOR FILE {fl}:\nuser MD5 hash: {userHash}\nbuild MD5 hash: {repoHash}");
+
+                if (userHash != repoHash) {
                     Console.WriteLine("!! -- HASH MISMATCH, COPY THIS THING!");
                     CurrentFileLabel.Text = $"Copying File: {fl}";
                     File.Copy(dl, fl, true);
+                } else {
+                    Console.WriteLine("!! -- HASHES MATCHED");
                 }
 
                 // File was OK or the file was copied!
@@ -522,8 +544,8 @@ namespace WTDE_Updater_V2 {
 
         private void Main_FormClosing(object sender, FormClosingEventArgs e) {
             if (EndUpdateButton.Text == "Cancel Update") {
-                string updateInProgressInfo = "The updater has not yet finished downloading files.\n" +
-                                                "Are you sure you want to abort the update?";
+                string updateInProgressInfo = "The updater has not yet finished copying or downloading files.\n" +
+                                              "Are you sure you want to abort the update?";
                 if (MessageBox.Show(updateInProgressInfo, "Abort Update?", MessageBoxButtons.YesNo) == DialogResult.Yes) {
                     e.Cancel = false;
                     Environment.Exit(0);
@@ -562,7 +584,7 @@ namespace WTDE_Updater_V2 {
 
         private void EndUpdateButton_Click(object sender, EventArgs e) {
             if (EndUpdateButton.Text == "Cancel Update") {
-                string updateInProgressInfo = "The updater has not yet finished downloading files.\n" +
+                string updateInProgressInfo = "The updater has not yet finished copying or downloading files.\n" +
                                               "Are you sure you want to abort the update?";
                 if (MessageBox.Show(updateInProgressInfo, "Abort Update?", MessageBoxButtons.YesNo) == DialogResult.Yes) {
                     Environment.Exit(0);

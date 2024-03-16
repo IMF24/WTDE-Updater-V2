@@ -378,6 +378,7 @@
             this.Name = "Main";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "GHWT: Definitive Edition Updater - V2.0";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Main_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.LogoImage)).EndInit();
             this.MainUpdaterPanel.ResumeLayout(false);
             this.MainUpdaterPanel.PerformLayout();
