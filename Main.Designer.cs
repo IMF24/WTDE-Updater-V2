@@ -51,6 +51,7 @@
             this.UpdaterLogoImageHome = new System.Windows.Forms.PictureBox();
             this.HeadLabelHome = new System.Windows.Forms.Label();
             this.LogoImageHome = new System.Windows.Forms.PictureBox();
+            this.StartDEWhenFinished = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.LogoImage)).BeginInit();
             this.MainUpdaterPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.UpdaterLogoImage)).BeginInit();
@@ -73,6 +74,7 @@
             // MainUpdaterPanel
             // 
             this.MainUpdaterPanel.BackColor = System.Drawing.Color.Transparent;
+            this.MainUpdaterPanel.Controls.Add(this.StartDEWhenFinished);
             this.MainUpdaterPanel.Controls.Add(this.VersionInfoLabel);
             this.MainUpdaterPanel.Controls.Add(this.EndUpdateButton);
             this.MainUpdaterPanel.Controls.Add(this.JoinDiscordButton);
@@ -87,7 +89,7 @@
             this.MainUpdaterPanel.Controls.Add(this.UpdaterLogoImage);
             this.MainUpdaterPanel.Controls.Add(this.HeadLabel);
             this.MainUpdaterPanel.Controls.Add(this.LogoImage);
-            this.MainUpdaterPanel.Location = new System.Drawing.Point(771, 12);
+            this.MainUpdaterPanel.Location = new System.Drawing.Point(5, -1);
             this.MainUpdaterPanel.Name = "MainUpdaterPanel";
             this.MainUpdaterPanel.Size = new System.Drawing.Size(800, 426);
             this.MainUpdaterPanel.TabIndex = 1;
@@ -245,7 +247,7 @@
             this.IntroPanel.Controls.Add(this.HeadLabelHome);
             this.IntroPanel.Controls.Add(this.LogoImageHome);
             this.IntroPanel.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.IntroPanel.Location = new System.Drawing.Point(2, 31);
+            this.IntroPanel.Location = new System.Drawing.Point(164, 286);
             this.IntroPanel.Name = "IntroPanel";
             this.IntroPanel.Size = new System.Drawing.Size(800, 426);
             this.IntroPanel.TabIndex = 2;
@@ -363,6 +365,18 @@
             this.LogoImageHome.TabIndex = 0;
             this.LogoImageHome.TabStop = false;
             // 
+            // StartDEWhenFinished
+            // 
+            this.StartDEWhenFinished.AutoSize = true;
+            this.StartDEWhenFinished.Font = new System.Drawing.Font("Lexend", 10F);
+            this.StartDEWhenFinished.ForeColor = System.Drawing.Color.White;
+            this.StartDEWhenFinished.Location = new System.Drawing.Point(409, 392);
+            this.StartDEWhenFinished.Name = "StartDEWhenFinished";
+            this.StartDEWhenFinished.Size = new System.Drawing.Size(210, 26);
+            this.StartDEWhenFinished.TabIndex = 14;
+            this.StartDEWhenFinished.Text = "Start WTDE When Finished";
+            this.StartDEWhenFinished.UseVisualStyleBackColor = true;
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
@@ -420,6 +434,7 @@
         private System.Windows.Forms.Button LocalUpdateButton;
         private System.Windows.Forms.Button OnlineUpdateButton;
         private System.Windows.Forms.Label VersionInfoLabelHome;
+        private System.Windows.Forms.CheckBox StartDEWhenFinished;
     }
 }
 

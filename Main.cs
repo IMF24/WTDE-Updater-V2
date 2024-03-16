@@ -94,6 +94,12 @@ namespace WTDE_Updater_V2 {
             IntroPanel.Location = new Point(0, 0);
             MainUpdaterPanel.Location = new Point(0, 0);
 
+            IniFile file = new IniFile();
+            file.Load("Updater.ini");
+
+            bool startDEWhenDone = (file.Sections["Updater"].Keys.Contains("StartAfterFinish") && file.Sections["Updater"].Keys["StartAfterFinish"].Value == "1");
+            StartDEWhenFinished.Checked = startDEWhenDone;
+
             // - - - - - - - - - - - - - - - - - - - - - - -
 
             // Process command line arguments!
@@ -334,6 +340,8 @@ namespace WTDE_Updater_V2 {
             // All files are downloaded!
             // Do some final updating of all controls, and we're done here!
             if (filesDone >= filePaths.Count) {
+                UpdateInProgress = false;
+
                 Console.WriteLine($"\nUPDATE COMPLETE! WHOO!!!\nMod is now updated to version {version}!\n");
 
                 CurrentFileLabel.Text = "Download Complete!";
@@ -481,6 +489,8 @@ namespace WTDE_Updater_V2 {
             // All files are copied!
             // Do some final updating of all controls, and we're done here!
             if (filesDone >= filePaths.Count) {
+                UpdateInProgress = false;
+
                 Console.WriteLine($"\nUPDATE COMPLETE! WHOO!!!\nMod is now updated to version {version}!\n");
 
                 CurrentFileLabel.Text = "Update Complete!";
@@ -543,6 +553,8 @@ namespace WTDE_Updater_V2 {
         }
 
         private void Main_FormClosing(object sender, FormClosingEventArgs e) {
+            if (!UpdateInProgress) Environment.Exit(0);
+
             if (EndUpdateButton.Text == "Cancel Update") {
                 string updateInProgressInfo = "The updater has not yet finished copying or downloading files.\n" +
                                               "Are you sure you want to abort the update?";
@@ -596,7 +608,7 @@ namespace WTDE_Updater_V2 {
 
                 IniFile file = new IniFile();
                 file.Load("Updater.ini");
-                if (file.Sections["Updater"].Keys["StartAfterFinish"].Value == "1") {
+                if (StartDEWhenFinished.Checked) {
                     Directory.SetCurrentDirectory(file.Sections["Updater"].Keys["GameDirectory"].Value);
 
                     Process.Start("GHWT_Definitive.exe");
