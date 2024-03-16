@@ -114,6 +114,16 @@ namespace WTDE_Updater_V2 {
             }
         }
 
+        // Add in double buffering.
+        protected override CreateParams CreateParams {
+            // Double buffer to prevent flickering.
+            get {
+                CreateParams cp = base.CreateParams;
+                cp.ExStyle |= 0x02000000;   // WS_EX_COMPOSITED
+                return cp;
+            }
+        }
+
         /// <summary>
         ///  Attempts to automatically execute the download when the program first launches.
         /// </summary>
@@ -619,7 +629,10 @@ namespace WTDE_Updater_V2 {
             }
         }
 
-        string[] TipMessages = {
+        /// <summary>
+        ///  Random tip messages!
+        /// </summary>
+        public string[] TipMessages = {
             "Guitar Hero: World Tour © 2009 Activision Publishing, Inc.",
             "GHWT: DE is a free, community based mod. It is not affiliated with any companies.",
             "GHWT: DE and Fretworks are not assoicated with Activision or any related entity.",
